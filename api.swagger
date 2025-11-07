@@ -1,0 +1,118 @@
+openapi: 3.1.0
+info:
+  title: Feature Flag Service API
+  version: 1.0.0
+  description: Provider-agnostic feature flag API
+servers:
+  - url: http://localhost:3000
+paths:
+  /flags:
+    get:
+      summary: List all loaded flags
+      responses:
+        '200':
+          description: List of flags with values and metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    value:
+                      oneOf:
+                        - type: boolean
+                        - type: number
+                        - type: string
+                        - type: object
+                      description: Flag value
+                    lastUpdated:
+                      type: string
+                      format: date-time
+                    source:
+                      type: string
+                      description: "Provider or bootstrap source"
+  /flags/{flagKey}:
+    get:
+      summary: Get value for a specific flag
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: context
+          in: query
+          required: false
+          schema:
+            type: string
+            description: JSON-encoded context (userId, country, etc.)
+      responses:
+        '200':
+          description: Flag value
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    oneOf:
+                      - type: boolean
+                      - type: number
+                      - type: string
+                      - type: object
+                  lastUpdated:
+                    type: string
+                    format: date-time
+                  source:
+                    type: string
+        '404':
+          description: Flag not found
+  /flags/{flagKey}/enabled:
+    get:
+      summary: Check if a flag is enabled (boolean)
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: context
+          in: query
+          required: false
+          schema:
+            type: string
+            description: JSON-encoded context
+      responses:
+        '200':
+          description: Enabled status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  lastUpdated:
+                    type: string
+                    format: date-time
+                  source:
+                    type: string
+        '404':
+          description: Flag not found
+  /flags/refresh:
+    post:
+      summary: Refresh flag cache from provider
+      responses:
+        '200':
+          description: Refresh successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refreshed:
+                    type: boolean
+                  timestamp:
+                    type: string
+                    format: date-time

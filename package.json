@@ -1,0 +1,31 @@
+{
+  "name": "feature-flags-api",
+  "version": "1.0.0",
+  "description": "Provider-agnostic feature flag API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "tap test/**/*.test.js"
+  },
+  "keywords": [
+    "feature-flags",
+    "api",
+    "fastify"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/swagger": "^8.13.0",
+    "@fastify/swagger-ui": "^2.1.0",
+    "fastify": "^4.24.3"
+  },
+  "devDependencies": {
+    "tap": "^21.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+
