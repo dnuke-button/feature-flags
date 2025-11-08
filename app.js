@@ -80,6 +80,12 @@ export async function buildApp(opts = {}) {
   fastify.get('/flags', {
     schema: {
       description: 'List all loaded flags',
+      querystring: {
+        type: 'object',
+        properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' }
+        }
+      },
       response: {
         200: {
           type: 'object',
@@ -102,6 +108,8 @@ export async function buildApp(opts = {}) {
       }
     }
   }, async (request, reply) => {
+    const { applicationId } = request.query;
+    // applicationId is available for future scoping logic
     const result = {};
     for (const [key, flag] of flags.entries()) {
       result[key] = flag;
@@ -123,6 +131,7 @@ export async function buildApp(opts = {}) {
       querystring: {
         type: 'object',
         properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' },
           context: { type: 'string', description: 'JSON-encoded context (userId, country, etc.)' }
         }
       },
@@ -152,8 +161,10 @@ export async function buildApp(opts = {}) {
     }
   }, async (request, reply) => {
     const { flagKey } = request.params;
+    const { applicationId } = request.query;
     const context = parseContext(request.query.context);
     
+    // applicationId is available for future scoping logic
     const flag = flags.get(flagKey);
     if (!flag) {
       return reply.code(404).send({ error: 'Flag not found' });
@@ -176,6 +187,7 @@ export async function buildApp(opts = {}) {
       querystring: {
         type: 'object',
         properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' },
           context: { type: 'string', description: 'JSON-encoded context' }
         }
       },
@@ -198,8 +210,10 @@ export async function buildApp(opts = {}) {
     }
   }, async (request, reply) => {
     const { flagKey } = request.params;
+    const { applicationId } = request.query;
     const context = parseContext(request.query.context);
     
+    // applicationId is available for future scoping logic
     const flag = flags.get(flagKey);
     if (!flag) {
       return reply.code(404).send({ error: 'Flag not found' });
@@ -226,6 +240,12 @@ export async function buildApp(opts = {}) {
   fastify.post('/flags/refresh', {
     schema: {
       description: 'Refresh flag cache from provider',
+      querystring: {
+        type: 'object',
+        properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' }
+        }
+      },
       response: {
         200: {
           type: 'object',
@@ -237,6 +257,8 @@ export async function buildApp(opts = {}) {
       }
     }
   }, async (request, reply) => {
+    const { applicationId } = request.query;
+    // applicationId is available for future scoping logic
     // In a real implementation, this would fetch from a provider
     // For now, we'll just update the lastUpdated timestamp
     const timestamp = new Date().toISOString();
@@ -251,6 +273,74 @@ export async function buildApp(opts = {}) {
     return {
       refreshed: true,
       timestamp
+    };
+  });
+
+  // POST /assignment - Check if a user is assigned to a feature flag
+  fastify.post('/assignment', {
+    schema: {
+      description: 'Check if a user is assigned to a feature flag',
+      body: {
+        type: 'object',
+        required: ['applicationId'],
+        properties: {
+          applicationId: { type: 'string', description: 'Application identifier' },
+          userId: { type: 'string', description: 'User identifier (alternative to userAttributes)' },
+          userAttributes: { 
+            type: 'object', 
+            description: 'User attributes object (alternative to userId)',
+            additionalProperties: true
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            assigned: { type: 'boolean', description: 'Whether the user is assigned' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { applicationId, userId, userAttributes } = request.body;
+    
+    // Validate that either userId or userAttributes is provided
+    if (!userId && !userAttributes) {
+      return reply.code(400).send({ 
+        error: 'Either userId or userAttributes must be provided' 
+      });
+    }
+    
+    // In a real implementation, this would check assignment rules based on:
+    // - applicationId
+    // - userId or userAttributes
+    // - flag targeting rules
+    // For now, we'll implement a simple demo logic
+    // This could check against assignment rules, user segments, etc.
+    
+    let assigned = false;
+    
+    if (userId) {
+      // Simple demo: assign based on userId hash (deterministic)
+      // In real implementation, this would check against assignment rules
+      const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      assigned = hash % 2 === 0; // 50% assignment for demo
+    } else if (userAttributes) {
+      // Simple demo: assign based on userAttributes
+      // In real implementation, this would check against targeting rules
+      // For demo, check if user has certain attributes
+      assigned = userAttributes.country === 'US' || userAttributes.plan === 'premium';
+    }
+    
+    return {
+      assigned
     };
   });
 

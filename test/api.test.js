@@ -76,6 +76,52 @@ test('GET /flags/:flagKey - should accept context query parameter', async (t) =>
   await app.close();
 });
 
+test('GET /flags - should accept applicationId query parameter', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'GET',
+    url: '/flags?applicationId=my-app-123'
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.ok(typeof data === 'object');
+  t.ok('feature-new-ui' in data);
+  
+  await app.close();
+});
+
+test('GET /flags/:flagKey - should accept applicationId query parameter', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'GET',
+    url: '/flags/feature-new-ui?applicationId=my-app-123'
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(data.value, true);
+  
+  await app.close();
+});
+
+test('GET /flags/:flagKey/enabled - should accept applicationId query parameter', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'GET',
+    url: '/flags/feature-new-ui/enabled?applicationId=my-app-123'
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(typeof data.enabled, 'boolean');
+  
+  await app.close();
+});
+
 test('GET /flags/:flagKey/enabled - should return enabled status for boolean flag', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
@@ -222,6 +268,125 @@ test('POST /flags/refresh - should update all flags with same timestamp', async 
     t.equal(allFlags[flagKey].lastUpdated, refreshTimestamp, 
       `Flag ${flagKey} should have updated timestamp`);
   }
+  
+  await app.close();
+});
+
+test('POST /assignment - should return assignment result with userId', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      applicationId: 'my-app-123',
+      userId: 'user-123'
+    }
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(typeof data.assigned, 'boolean');
+  
+  await app.close();
+});
+
+test('POST /assignment - should return assignment result with userAttributes', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      applicationId: 'my-app-123',
+      userAttributes: {
+        country: 'US',
+        plan: 'free'
+      }
+    }
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(typeof data.assigned, 'boolean');
+  
+  await app.close();
+});
+
+test('POST /assignment - should assign user with US country attribute', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      applicationId: 'my-app-123',
+      userAttributes: {
+        country: 'US',
+        plan: 'free'
+      }
+    }
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(data.assigned, true); // US country should assign
+  
+  await app.close();
+});
+
+test('POST /assignment - should assign user with premium plan', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      applicationId: 'my-app-123',
+      userAttributes: {
+        country: 'CA',
+        plan: 'premium'
+      }
+    }
+  });
+  
+  t.equal(response.statusCode, 200);
+  const data = response.json();
+  t.equal(data.assigned, true); // Premium plan should assign
+  
+  await app.close();
+});
+
+test('POST /assignment - should return 400 when neither userId nor userAttributes provided', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      applicationId: 'my-app-123'
+    }
+  });
+  
+  t.equal(response.statusCode, 400);
+  const data = response.json();
+  t.equal(data.error, 'Either userId or userAttributes must be provided');
+  
+  await app.close();
+});
+
+test('POST /assignment - should return 400 when applicationId is missing', async (t) => {
+  const app = await buildApp({ logger: false, enableSwaggerUI: false });
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/assignment',
+    payload: {
+      userId: 'user-123'
+    }
+  });
+  
+  t.equal(response.statusCode, 400);
   
   await app.close();
 });

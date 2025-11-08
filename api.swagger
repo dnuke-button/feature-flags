@@ -9,6 +9,13 @@ paths:
   /flags:
     get:
       summary: List all loaded flags
+      parameters:
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
       responses:
         '200':
           description: List of flags with values and metadata
@@ -41,6 +48,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
         - name: context
           in: query
           required: false
@@ -77,6 +90,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
         - name: context
           in: query
           required: false
@@ -103,6 +122,13 @@ paths:
   /flags/refresh:
     post:
       summary: Refresh flag cache from provider
+      parameters:
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
       responses:
         '200':
           description: Refresh successful
@@ -116,3 +142,45 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
+  /assignment:
+    post:
+      summary: Check if a user is assigned to a feature flag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - applicationId
+              properties:
+                applicationId:
+                  type: string
+                  description: Application identifier
+                userId:
+                  type: string
+                  description: User identifier (alternative to userAttributes)
+                userAttributes:
+                  type: object
+                  description: User attributes object (alternative to userId)
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Assignment result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assigned:
+                    type: boolean
+                    description: Whether the user is assigned
+        '400':
+          description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
