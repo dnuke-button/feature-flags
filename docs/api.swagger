@@ -81,44 +81,6 @@ paths:
                     type: string
         '404':
           description: Flag not found
-  /flags/{flagKey}/enabled:
-    get:
-      summary: Check if a flag is enabled (boolean)
-      parameters:
-        - name: flagKey
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: applicationId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Application identifier to scope flags
-        - name: context
-          in: query
-          required: false
-          schema:
-            type: string
-            description: JSON-encoded context
-      responses:
-        '200':
-          description: Enabled status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  enabled:
-                    type: boolean
-                  lastUpdated:
-                    type: string
-                    format: date-time
-                  source:
-                    type: string
-        '404':
-          description: Flag not found
   /flags/refresh:
     post:
       summary: Refresh flag cache from provider
@@ -144,19 +106,69 @@ paths:
                     format: date-time
   /assignment:
     post:
-      summary: Check if a user is assigned to a feature flag
+      summary: Get variation assignment for a user
+      parameters:
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - applicationId
               properties:
-                applicationId:
+                userId:
                   type: string
-                  description: Application identifier
+                  description: User identifier (alternative to userAttributes)
+                userAttributes:
+                  type: object
+                  description: User attributes object (alternative to userId)
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Variation assignment result
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Variation object containing flag and assignment information
+                additionalProperties: true
+        '400':
+          description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /assignment/{flagKey}:
+    post:
+      summary: Check if a user is assigned to a feature flag
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Feature flag key
+        - name: applicationId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Application identifier to scope flags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
                 userId:
                   type: string
                   description: User identifier (alternative to userAttributes)
@@ -177,6 +189,15 @@ paths:
                     description: Whether the user is assigned
         '400':
           description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Flag not found
           content:
             application/json:
               schema:

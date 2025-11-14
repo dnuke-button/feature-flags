@@ -173,69 +173,6 @@ export async function buildApp(opts = {}) {
     return flag;
   });
 
-  // GET /flags/{flagKey}/enabled - Check if flag is enabled
-  fastify.get('/flags/:flagKey/enabled', {
-    schema: {
-      description: 'Check if a flag is enabled (boolean)',
-      params: {
-        type: 'object',
-        properties: {
-          flagKey: { type: 'string' }
-        },
-        required: ['flagKey']
-      },
-      querystring: {
-        type: 'object',
-        properties: {
-          applicationId: { type: 'string', description: 'Application identifier to scope flags' },
-          context: { type: 'string', description: 'JSON-encoded context' }
-        }
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            enabled: { type: 'boolean' },
-            lastUpdated: { type: 'string', format: 'date-time' },
-            source: { type: 'string' }
-          }
-        },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    const { flagKey } = request.params;
-    const { applicationId } = request.query;
-    const context = parseContext(request.query.context);
-    
-    // applicationId is available for future scoping logic
-    const flag = flags.get(flagKey);
-    if (!flag) {
-      return reply.code(404).send({ error: 'Flag not found' });
-    }
-    
-    // Convert value to boolean if needed
-    let enabled = false;
-    if (typeof flag.value === 'boolean') {
-      enabled = flag.value;
-    } else if (typeof flag.value === 'string') {
-      enabled = flag.value.toLowerCase() === 'true' || flag.value === '1';
-    } else if (typeof flag.value === 'number') {
-      enabled = flag.value !== 0;
-    }
-    
-    return {
-      enabled,
-      lastUpdated: flag.lastUpdated,
-      source: flag.source
-    };
-  });
-
   // POST /flags/refresh - Refresh flag cache
   fastify.post('/flags/refresh', {
     schema: {
@@ -276,15 +213,90 @@ export async function buildApp(opts = {}) {
     };
   });
 
-  // POST /assignment - Check if a user is assigned to a feature flag
+  // POST /assignment - Get variation assignment for a user
   fastify.post('/assignment', {
     schema: {
-      description: 'Check if a user is assigned to a feature flag',
+      description: 'Get variation assignment for a user',
+      querystring: {
+        type: 'object',
+        properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' }
+        }
+      },
       body: {
         type: 'object',
-        required: ['applicationId'],
         properties: {
-          applicationId: { type: 'string', description: 'Application identifier' },
+          userId: { type: 'string', description: 'User identifier (alternative to userAttributes)' },
+          userAttributes: { 
+            type: 'object', 
+            description: 'User attributes object (alternative to userId)',
+            additionalProperties: true
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          description: 'Variation object containing flag and assignment information',
+          additionalProperties: true
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { applicationId } = request.query;
+    const { userId, userAttributes } = request.body;
+    
+    // Validate that either userId or userAttributes is provided
+    if (!userId && !userAttributes) {
+      return reply.code(400).send({ 
+        error: 'Either userId or userAttributes must be provided' 
+      });
+    }
+    
+    // In a real implementation, this would evaluate all flags and return variations
+    // For now, we'll return a demo variation object
+    // A Variation typically contains: flag key, variation value, and metadata
+    
+    // Build variation object - in real implementation, this would come from flag evaluation
+    const variation = {
+      flagKey: 'feature-new-ui',
+      value: true,
+      variation: 'on',
+      assigned: true,
+      reason: 'DEFAULT',
+      lastUpdated: new Date().toISOString(),
+      source: 'bootstrap'
+    };
+    
+    return variation;
+  });
+
+  // POST /assignment/{flagKey} - Check if a user is assigned to a feature flag
+  fastify.post('/assignment/:flagKey', {
+    schema: {
+      description: 'Check if a user is assigned to a feature flag',
+      params: {
+        type: 'object',
+        properties: {
+          flagKey: { type: 'string' }
+        },
+        required: ['flagKey']
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          applicationId: { type: 'string', description: 'Application identifier to scope flags' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
           userId: { type: 'string', description: 'User identifier (alternative to userAttributes)' },
           userAttributes: { 
             type: 'object', 
@@ -305,11 +317,19 @@ export async function buildApp(opts = {}) {
           properties: {
             error: { type: 'string' }
           }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' }
+          }
         }
       }
     }
   }, async (request, reply) => {
-    const { applicationId, userId, userAttributes } = request.body;
+    const { flagKey } = request.params;
+    const { applicationId } = request.query;
+    const { userId, userAttributes } = request.body;
     
     // Validate that either userId or userAttributes is provided
     if (!userId && !userAttributes) {
@@ -318,8 +338,17 @@ export async function buildApp(opts = {}) {
       });
     }
     
+    // Check if flag exists
+    const flag = flags.get(flagKey);
+    if (!flag) {
+      return reply.code(404).send({ 
+        error: 'Flag not found' 
+      });
+    }
+    
     // In a real implementation, this would check assignment rules based on:
     // - applicationId
+    // - flagKey
     // - userId or userAttributes
     // - flag targeting rules
     // For now, we'll implement a simple demo logic

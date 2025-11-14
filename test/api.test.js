@@ -107,100 +107,64 @@ test('GET /flags/:flagKey - should accept applicationId query parameter', async 
   await app.close();
 });
 
-test('GET /flags/:flagKey/enabled - should accept applicationId query parameter', async (t) => {
+test('POST /assignment - should return variation object with userId', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
-    method: 'GET',
-    url: '/flags/feature-new-ui/enabled?applicationId=my-app-123'
+    method: 'POST',
+    url: '/assignment?applicationId=my-app-123',
+    payload: {
+      userId: 'user-123'
+    }
   });
   
   t.equal(response.statusCode, 200);
   const data = response.json();
-  t.equal(typeof data.enabled, 'boolean');
+  t.ok(typeof data === 'object');
+  t.ok('flagKey' in data);
+  t.ok('value' in data);
+  t.ok('variation' in data);
+  t.ok('assigned' in data);
   
   await app.close();
 });
 
-test('GET /flags/:flagKey/enabled - should return enabled status for boolean flag', async (t) => {
+test('POST /assignment - should return variation object with userAttributes', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
-    method: 'GET',
-    url: '/flags/feature-new-ui/enabled'
+    method: 'POST',
+    url: '/assignment?applicationId=my-app-123',
+    payload: {
+      userAttributes: {
+        country: 'US',
+        plan: 'free'
+      }
+    }
   });
   
   t.equal(response.statusCode, 200);
   const data = response.json();
-  t.equal(typeof data.enabled, 'boolean');
-  t.equal(data.enabled, true);
-  t.ok('lastUpdated' in data);
-  t.ok('source' in data);
+  t.ok(typeof data === 'object');
+  t.ok('flagKey' in data);
+  t.ok('value' in data);
+  t.ok('variation' in data);
   
   await app.close();
 });
 
-test('GET /flags/:flagKey/enabled - should return enabled=false for disabled boolean flag', async (t) => {
+test('POST /assignment - should return 400 when neither userId nor userAttributes provided', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
-    method: 'GET',
-    url: '/flags/feature-analytics/enabled'
+    method: 'POST',
+    url: '/assignment?applicationId=my-app-123',
+    payload: {}
   });
   
-  t.equal(response.statusCode, 200);
+  t.equal(response.statusCode, 400);
   const data = response.json();
-  t.equal(typeof data.enabled, 'boolean');
-  t.equal(data.enabled, false);
-  
-  await app.close();
-});
-
-test('GET /flags/:flagKey/enabled - should convert number flag to boolean', async (t) => {
-  const app = await buildApp({ logger: false, enableSwaggerUI: false });
-  
-  const response = await app.inject({
-    method: 'GET',
-    url: '/flags/max-items-per-page/enabled'
-  });
-  
-  t.equal(response.statusCode, 200);
-  const data = response.json();
-  t.equal(typeof data.enabled, 'boolean');
-  // 50 is non-zero, so should be true
-  t.equal(data.enabled, true);
-  
-  await app.close();
-});
-
-test('GET /flags/:flagKey/enabled - should convert string flag to boolean', async (t) => {
-  const app = await buildApp({ logger: false, enableSwaggerUI: false });
-  
-  const response = await app.inject({
-    method: 'GET',
-    url: '/flags/api-version/enabled'
-  });
-  
-  t.equal(response.statusCode, 200);
-  const data = response.json();
-  t.equal(typeof data.enabled, 'boolean');
-  // 'v2' is not 'true' or '1', so should be false
-  t.equal(data.enabled, false);
-  
-  await app.close();
-});
-
-test('GET /flags/:flagKey/enabled - should return 404 for non-existent flag', async (t) => {
-  const app = await buildApp({ logger: false, enableSwaggerUI: false });
-  
-  const response = await app.inject({
-    method: 'GET',
-    url: '/flags/non-existent-flag/enabled'
-  });
-  
-  t.equal(response.statusCode, 404);
-  const data = response.json();
-  t.equal(data.error, 'Flag not found');
+  t.equal(data.error, 'Either userId or userAttributes must be provided');
   
   await app.close();
 });
@@ -272,14 +236,13 @@ test('POST /flags/refresh - should update all flags with same timestamp', async 
   await app.close();
 });
 
-test('POST /assignment - should return assignment result with userId', async (t) => {
+test('POST /assignment/:flagKey - should return assignment result with userId', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
+    url: '/assignment/feature-new-ui?applicationId=my-app-123',
     payload: {
-      applicationId: 'my-app-123',
       userId: 'user-123'
     }
   });
@@ -291,14 +254,13 @@ test('POST /assignment - should return assignment result with userId', async (t)
   await app.close();
 });
 
-test('POST /assignment - should return assignment result with userAttributes', async (t) => {
+test('POST /assignment/:flagKey - should return assignment result with userAttributes', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
+    url: '/assignment/feature-new-ui?applicationId=my-app-123',
     payload: {
-      applicationId: 'my-app-123',
       userAttributes: {
         country: 'US',
         plan: 'free'
@@ -313,14 +275,13 @@ test('POST /assignment - should return assignment result with userAttributes', a
   await app.close();
 });
 
-test('POST /assignment - should assign user with US country attribute', async (t) => {
+test('POST /assignment/:flagKey - should assign user with US country attribute', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
+    url: '/assignment/feature-new-ui?applicationId=my-app-123',
     payload: {
-      applicationId: 'my-app-123',
       userAttributes: {
         country: 'US',
         plan: 'free'
@@ -335,14 +296,13 @@ test('POST /assignment - should assign user with US country attribute', async (t
   await app.close();
 });
 
-test('POST /assignment - should assign user with premium plan', async (t) => {
+test('POST /assignment/:flagKey - should assign user with premium plan', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
+    url: '/assignment/feature-new-ui?applicationId=my-app-123',
     payload: {
-      applicationId: 'my-app-123',
       userAttributes: {
         country: 'CA',
         plan: 'premium'
@@ -357,15 +317,13 @@ test('POST /assignment - should assign user with premium plan', async (t) => {
   await app.close();
 });
 
-test('POST /assignment - should return 400 when neither userId nor userAttributes provided', async (t) => {
+test('POST /assignment/:flagKey - should return 400 when neither userId nor userAttributes provided', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
-    payload: {
-      applicationId: 'my-app-123'
-    }
+    url: '/assignment/feature-new-ui?applicationId=my-app-123',
+    payload: {}
   });
   
   t.equal(response.statusCode, 400);
@@ -375,18 +333,20 @@ test('POST /assignment - should return 400 when neither userId nor userAttribute
   await app.close();
 });
 
-test('POST /assignment - should return 400 when applicationId is missing', async (t) => {
+test('POST /assignment/:flagKey - should return 404 when flag not found', async (t) => {
   const app = await buildApp({ logger: false, enableSwaggerUI: false });
   
   const response = await app.inject({
     method: 'POST',
-    url: '/assignment',
+    url: '/assignment/non-existent-flag?applicationId=my-app-123',
     payload: {
       userId: 'user-123'
     }
   });
   
-  t.equal(response.statusCode, 400);
+  t.equal(response.statusCode, 404);
+  const data = response.json();
+  t.equal(data.error, 'Flag not found');
   
   await app.close();
 });

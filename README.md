@@ -14,10 +14,12 @@ npm install
 npm start
 ```
 
-For development with auto-reload:
+For development with hot reloading (automatically restarts on file changes):
 ```bash
 npm run dev
 ```
+
+The dev server will watch `app.js` and `server.js` and automatically restart when changes are detected.
 
 3. Run tests:
 ```bash
@@ -36,6 +38,8 @@ The server will be available at `http://localhost:3000`
 ## Swagger Documentation
 
 Swagger UI is available at `http://localhost:3000/docs`
+
+Online documentation is deployed to `https://dnuke-button.github.io/feature-flags/`
 
 The API specification is defined in `api.swagger`.
 
